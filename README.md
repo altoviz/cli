@@ -42,12 +42,15 @@ Key highlights:
 ### macOS
 
 ```sh
-brew install altoviz/tap/altoviz
+brew trust altoviz/tap && brew install altoviz/tap/altoviz
 ```
 
 ### Linux
 
 ```sh
+# Homebrew
+brew trust altoviz/tap && brew install altoviz/tap/altoviz
+
 # One-liner installer
 curl -fsSL https://raw.githubusercontent.com/altoviz/cli/main/install.sh | sh
 
@@ -75,7 +78,7 @@ winget install Altoviz.CLI
 altoviz configure
 
 # — or pass it inline / via environment variable
-export ALTOVIZ_API_KEY=your_key_here
+export ALTOVIZ_CLI_API_KEY=your_key_here
 
 # Verify connectivity
 altoviz hello
@@ -289,8 +292,8 @@ These options are available on every command:
 
 | Option        | Short | Description                                            |
 | ------------- | ----- | ------------------------------------------------------ |
-| `--api-key`   |       | Override API key (env: `ALTOVIZ_API_KEY`)              |
-| `--endpoint`  |       | Override base URL (default: `https://api.altoviz.com`) |
+| `--api-key`   |       | Override API key (env: `ALTOVIZ_CLI_API_KEY`)                        |
+| `--endpoint`  |       | Override base URL (env: `ALTOVIZ_CLI_ENDPOINT`, default: `https://api.altoviz.com`) |
 | `--output`    | `-o`  | Output format (see above)                              |
 | `--columns`   |       | Pipe-separated dot-path column list                    |
 | `--file`      | `-f`  | JSON/YAML input file, or `-` for stdin                 |
@@ -302,19 +305,42 @@ These options are available on every command:
 
 ---
 
+## Exit Codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Success |
+| `1` | General failure (network error, server error) |
+| `2` | Usage error (invalid arguments or options) |
+| `3` | Resource not found (HTTP 404) |
+| `4` | Permission denied (HTTP 401 / 403) |
+| `5` | Conflict (HTTP 409 — resource already exists) |
+
+When using `--output json`, API errors are also written to stdout as a structured object:
+
+```json
+{
+  "error": true,
+  "statusCode": 404,
+  "detail": { "message": "Customer not found" }
+}
+```
+
+---
+
 ## Configuration
 
-Credentials are resolved in this order (highest priority first):
+Credentials and endpoint are resolved in this order (highest priority first):
 
-1. `--api-key` CLI flag
-2. `ALTOVIZ_API_KEY` environment variable
+1. `--api-key` / `--endpoint` CLI flags
+2. `ALTOVIZ_CLI_API_KEY` / `ALTOVIZ_CLI_ENDPOINT` environment variables
 3. `~/.altoviz/cli.yaml` config file
 
 Run `altoviz configure` to create or update the config file interactively. The file format is:
 
 ```yaml
 apiKey: your_key_here
-endpoint: https://api.altoviz.com # optional
+endpoint: https://api.altoviz.com   # optional — override for staging/sandbox
 ```
 
 ---
