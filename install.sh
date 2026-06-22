@@ -76,4 +76,4 @@ echo "altoviz installed to ${INSTALL_DIR}/altoviz"
 echo ""
 "${INSTALL_DIR}/altoviz" about
 echo ""
-echo "Run 'altoviz configure' to set your API key."
+echo "Run 'altoviz config create' to set your API key."

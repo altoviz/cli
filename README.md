@@ -19,6 +19,9 @@
   <a href="https://github.com/altoviz/homebrew-tap">
     <img src="https://img.shields.io/badge/homebrew-altoviz%2Ftap-FBB040?logo=homebrew" alt="Homebrew tap" />
   </a>
+  <a href="https://community.chocolatey.org/packages/altoviz">
+    <img src="https://img.shields.io/chocolatey/v/altoviz?logo=chocolatey&color=80B5E3" alt="Chocolatey" />
+  </a>
 </p>
 
 ---
@@ -32,7 +35,8 @@ Key highlights:
 - **No runtime required** — single binary for macOS, Linux, and Windows
 - **9 output formats** — table (default), JSON, YAML, Markdown, CSV, TSV
 - **Shell completions** — bash, zsh, fish, PowerShell
-- **Flexible auth** — env var, config file, or `--api-key` flag
+- **Secure credential storage** — API key stored in the OS keychain (macOS Keychain, Windows Credential Manager, Linux Secret Service)
+- **Multiple profiles** — switch between environments with `--profile`
 - **Scriptable** — pipe JSON in with `--file -`, control columns with `--columns`, page with `--all-pages`
 
 ---
@@ -64,30 +68,50 @@ sudo rpm -i altoviz-<version>-1.x86_64.rpm
 ### Windows
 
 ```powershell
+## WinGet
 winget install Altoviz.CLI
+
+## Chocolatey
+choco install altoviz
 ```
 
-**Manual install:** download the zip from [Releases](https://github.com/altoviz/cli/releases), extract, and add the folder to your `PATH`.
+**Manual install:** download the zip from [Releases](https://github.com/altoviz/cli/releases), extract and have fun.
 
 ---
 
 ## Quick Start
 
 ```sh
-# Store your API key
-altoviz configure
+# Store your API key (saved to OS keychain)
+altoviz config create
+
+# Add a named profile for a test company with interactive experience
+altoviz config create my_test_company
+
+# Add a named profile for a test company with args
+ altoviz config create my_test_company --api-key={YOUR_API_KEY}
 
 # — or pass it inline / via environment variable
 export ALTOVIZ_CLI_API_KEY=your_key_here
 
-# Verify connectivity
-altoviz hello
+# — or pass it as an arg on every command
+altoviz invoice list --api-key={YOUR_API_KEY}
+
 
 # List invoices
 altoviz invoice list
 
-# Fetch a single customer as JSON
-altoviz customer get 42 --output json
+# List invoices as JSON
+altoviz invoice list --json
+
+# List invoices as Markdown
+altoviz invoice list --output markdown
+
+# Fetch a single customer as colored JSON
+altoviz customer get 42 --cjson
+
+# Use a specific profile
+altoviz --profile staging customers list
 
 # Export this year's invoices to CSV
 altoviz export invoices --from 2026-01-01 --to 2026-12-31
@@ -101,11 +125,21 @@ altoviz export invoices --from 2026-01-01 --to 2026-12-31
 
 | Command                      | Description                                                              |
 | ---------------------------- | ------------------------------------------------------------------------ |
-| `altoviz hello`              | Test the API key and display connection info                             |
-| `altoviz configure`          | Save API key and endpoint to `~/.altoviz/cli.yaml`                       |
+| `altoviz about`              | Display version, website, and copyright                                  |
 | `altoviz version [--check]`  | Print current version; `--check` compares with the latest GitHub release |
 | `altoviz completion <shell>` | Emit a completion script for `bash`, `zsh`, `fish`, or `pwsh`            |
-| `altoviz about`              | Display version, website, and copyright                                  |
+
+### Configuration
+
+| Command                   | Description                                        |
+| ------------------------- | -------------------------------------------------- |
+| `config list`             | List all configured profiles                       |
+| `config get [profile]`    | Display a profile's endpoint and key status        |
+| `config create [profile]` | Add or update a profile (interactive or via flags) |
+| `config delete [profile]` | Remove a profile and its stored credentials        |
+| `config reset`            | Delete all profiles and credentials                |
+
+`config create` accepts `--api-key` and `--endpoint` flags for non-interactive use. When run interactively it prompts with a link to [app.altoviz.com/go/settings/apis](https://app.altoviz.com/go/settings/apis).
 
 ### Customers
 
@@ -257,30 +291,30 @@ All export commands accept `--from` / `--to` (date range), `--format` (Excel, Eu
 
 ### Reference Data
 
-| Command                        | Description                                       |
-| ------------------------------ | ------------------------------------------------- |
-| `ref vats`                     | List VAT rates                                    |
-| `ref units`                    | List units of measure                             |
-| `ref classifications [--type]` | List classifications, optionally filtered by type |
-| `ref settings`                 | Get account settings                              |
+| Command                    | Description                                       |
+| -------------------------- | ------------------------------------------------- |
+| `vats`                     | List VAT rates                                    |
+| `units`                    | List units of measure                             |
+| `classifications [--type]` | List classifications, optionally filtered by type |
+| `settings`                 | Get account settings                              |
 
 ---
 
 ## Output Formats
 
-Use `--output` / `-o` on any command:
+Use `--output` / `-o` on any command, or the shorthand flags below:
 
-| Value               | Description                                    |
-| ------------------- | ---------------------------------------------- |
-| `table` _(default)_ | Bordered ASCII table, auto-fits terminal width |
-| `json`              | Pretty-printed JSON                            |
-| `compact-json`      | Single-line JSON                               |
-| `colored-json`      | Syntax-highlighted JSON (ANSI colors)          |
-| `yaml`              | YAML                                           |
-| `markdown`          | Pipe-delimited Markdown table                  |
-| `csv-eu`            | CSV with `;` separator                         |
-| `csv-us`            | CSV with `,` separator                         |
-| `tsv`               | Tab-separated values                           |
+| Flag      | Equivalent              | Description                              |
+| --------- | ----------------------- | ---------------------------------------- |
+| _(none)_  | `--output table`        | Bordered table, auto-fits terminal width |
+| `--json`  | `--output json`         | Pretty-printed JSON                      |
+| `--yaml`  | `--output yaml`         | YAML                                     |
+| `--cjson` | `--output colored-json` | Syntax-highlighted JSON (ANSI colors)    |
+| `--md`    | `--output markdown`     | Pipe-delimited Markdown table            |
+| `--csv`   | `--output csv-us`       | CSV with `,` separator                   |
+| `--tsv`   | `--output tsv`          | Tab-separated values                     |
+
+Additional `--output` values: `compact-json`, `csv-eu` (`;` separator).
 
 Control which columns appear with `--columns id|name|email` (pipe-separated dot-paths).
 
@@ -290,31 +324,38 @@ Control which columns appear with `--columns id|name|email` (pipe-separated dot-
 
 These options are available on every command:
 
-| Option        | Short | Description                                            |
-| ------------- | ----- | ------------------------------------------------------ |
-| `--api-key`   |       | Override API key (env: `ALTOVIZ_CLI_API_KEY`)                        |
+| Option        | Short | Description                                                                         |
+| ------------- | ----- | ----------------------------------------------------------------------------------- |
+| `--profile`   | `-p`  | Profile to use (env: `ALTOVIZ_CLI_PROFILE`, default: `default`)                     |
+| `--api-key`   |       | Override API key (env: `ALTOVIZ_CLI_API_KEY`)                                       |
 | `--endpoint`  |       | Override base URL (env: `ALTOVIZ_CLI_ENDPOINT`, default: `https://api.altoviz.com`) |
-| `--output`    | `-o`  | Output format (see above)                              |
-| `--columns`   |       | Pipe-separated dot-path column list                    |
-| `--file`      | `-f`  | JSON/YAML input file, or `-` for stdin                 |
-| `--verbose`   |       | Print HTTP request/response to stderr                  |
-| `--no-color`  |       | Disable ANSI colors                                    |
-| `--quiet`     | `-q`  | Suppress all output except errors                      |
-| `--yes`       | `-y`  | Skip confirmation prompts                              |
-| `--show-time` |       | Include time component in date columns                 |
+| `--output`    | `-o`  | Output format (see above)                                                           |
+| `--json`      |       | Shorthand for `--output json`                                                       |
+| `--yaml`      |       | Shorthand for `--output yaml`                                                       |
+| `--cjson`     |       | Shorthand for `--output colored-json`                                               |
+| `--md`        |       | Shorthand for `--output markdown`                                                   |
+| `--csv`       |       | Shorthand for `--output csv-us`                                                     |
+| `--tsv`       |       | Shorthand for `--output tsv`                                                        |
+| `--columns`   |       | Pipe-separated dot-path column list                                                 |
+| `--file`      | `-f`  | JSON/YAML input file, or `-` for stdin                                              |
+| `--verbose`   |       | Print HTTP request/response to stderr                                               |
+| `--no-color`  |       | Disable ANSI colors                                                                 |
+| `--quiet`     | `-q`  | Suppress all output except errors                                                   |
+| `--yes`       | `-y`  | Skip confirmation prompts                                                           |
+| `--show-time` |       | Include time component in date columns                                              |
 
 ---
 
 ## Exit Codes
 
-| Code | Meaning |
-|---|---|
-| `0` | Success |
-| `1` | General failure (network error, server error) |
-| `2` | Usage error (invalid arguments or options) |
-| `3` | Resource not found (HTTP 404) |
-| `4` | Permission denied (HTTP 401 / 403) |
-| `5` | Conflict (HTTP 409 — resource already exists) |
+| Code | Meaning                                       |
+| ---- | --------------------------------------------- |
+| `0`  | Success                                       |
+| `1`  | General failure (network error, server error) |
+| `2`  | Usage error (invalid arguments or options)    |
+| `3`  | Resource not found (HTTP 404)                 |
+| `4`  | Permission denied (HTTP 401 / 403)            |
+| `5`  | Conflict (HTTP 409 — resource already exists) |
 
 When using `--output json`, API errors are also written to stdout as a structured object:
 
@@ -330,29 +371,71 @@ When using `--output json`, API errors are also written to stdout as a structure
 
 ## Configuration
 
-Credentials and endpoint are resolved in this order (highest priority first):
+### Profiles
+
+The CLI supports named profiles so you can switch between different environments or accounts:
+
+```sh
+# Add or update the default profile
+altoviz config create
+
+# Add a staging profile
+altoviz config create staging --endpoint https://api.staging.altoviz.com
+
+# Use a profile for a single command
+altoviz --profile staging invoice list
+
+# Set the active profile for the session
+export ALTOVIZ_CLI_PROFILE=staging
+```
+
+### Credential storage
+
+API keys are stored securely in the OS keychain — no plain text on disk:
+
+| Platform | Store                      |
+| -------- | -------------------------- |
+| macOS    | Keychain                   |
+| Windows  | Credential Manager         |
+| Linux    | Secret Service (libsecret) |
+| WSL      | Windows Credential Manager |
+
+If no keychain is available, the key falls back to the config file with a warning.
+
+### Credential resolution order
+
+For each command, credentials are resolved in priority order:
 
 1. `--api-key` / `--endpoint` CLI flags
 2. `ALTOVIZ_CLI_API_KEY` / `ALTOVIZ_CLI_ENDPOINT` environment variables
-3. `~/.altoviz/cli.yaml` config file
+3. OS keychain (keyed by profile name)
+4. `~/.altoviz/cli.yaml` config file
 
-Run `altoviz configure` to create or update the config file interactively. The file format is:
+### Config file format
 
-```yaml
-apiKey: your_key_here
-endpoint: https://api.altoviz.com   # optional — override for staging/sandbox
+`~/.altoviz/cli.yaml` uses an INI-style format with one section per profile:
+
+```ini
+[default]
+apikey={YOUR_API_KEY}
+
+[my_other_company]
+apikey={YOUR_OTHER_API_KEY}
 ```
+
+API keys are omitted from the file when the OS keychain is available.
 
 ---
 
 ## Links
 
-- Website: [altoviz.com](https://www.altoviz.com)
-- API documentation: [api.altoviz.com](https://api.altoviz.com)
+- Website: [altoviz.com](https://altoviz.com)
+- API documentation: [api.altoviz.com](https://developer.altoviz.com)
+- API key settings: [app.altoviz.com/go/settings/apis](https://app.altoviz.com/go/settings/apis)
 - Releases: [github.com/altoviz/cli/releases](https://github.com/altoviz/cli/releases)
 
 ---
 
 <p align="center">
-  <sub>© 2024–2026 <a href="https://www.altoviz.com">Altoviz</a></sub>
+  <sub>© 2024–2026 <a href="https://altoviz.com">Altoviz</a></sub>
 </p>
